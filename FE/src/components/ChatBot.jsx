@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function ChatBot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
 
   // Simple mock bot response - will be replaced with backend API call later
   const getBotResponse = (userMessage) => {
@@ -18,6 +19,15 @@ function ChatBot() {
     } else {
       return "Thanks for your message! I'm a simple chatbot. How can I assist you?";
     }
+  };
+
+  // Auto-scroll to bottom when messages or typing state changes
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleSend = () => {
@@ -54,7 +64,14 @@ function ChatBot() {
     <div className="flex flex-col w-full max-w-md h-[calc(100vh-2rem)] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 px-6 py-4 shrink-0">
-        <h1 className="text-2xl font-semibold text-gray-800">Chat Bot</h1>
+        <div className="flex items-center gap-3">
+          <img
+            src="/chatbot.jpg"
+            alt="Chat Bot Logo"
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <h1 className="text-2xl font-semibold text-gray-800">Sabawi Tech</h1>
+        </div>
       </div>
 
       {/* Messages Area */}
@@ -73,9 +90,11 @@ function ChatBot() {
                 }`}
               >
                 {message.sender === "bot" && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                    B
-                  </div>
+                  <img
+                    src="/chatbotlogo.png"
+                    alt="Bot"
+                    className="w-8 h-8 rounded-full object-cover shrink-0"
+                  />
                 )}
                 <div
                   className={`max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm ${
@@ -92,9 +111,11 @@ function ChatBot() {
             ))}
             {isTyping && (
               <div className="flex items-end gap-2 justify-start">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                  B
-                </div>
+                <img
+                  src="/chatbotlogo.png"
+                  alt="Bot"
+                  className="w-8 h-8 rounded-full object-cover shrink-0"
+                />
                 <div className="bg-gray-50 border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-2.5 shadow-sm">
                   <div className="flex gap-1">
                     <div
@@ -113,6 +134,7 @@ function ChatBot() {
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </>
         )}
       </div>
