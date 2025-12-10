@@ -1,23 +1,35 @@
 import { useState, useEffect, useRef } from "react";
 
+// Backend API URL - adjust if your backend runs on a different port
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 function ChatBot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // Simple mock bot response - will be replaced with backend API call later
-  const getBotResponse = (userMessage) => {
-    const lowerMessage = userMessage.toLowerCase();
+  // Fetch bot response from backend API
+  const getBotResponse = async (userMessage) => {
+    try {
+      const response = await fetch(`${API_URL}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMessage }),
+      });
 
-    if (lowerMessage.includes("hello") || lowerMessage.includes("hi")) {
-      return "Hello! How can I help you today?";
-    } else if (lowerMessage.includes("help")) {
-      return "I'm here to assist you. What would you like to know?";
-    } else if (lowerMessage.includes("thank")) {
-      return "You're welcome! Is there anything else I can help with?";
-    } else {
-      return "Thanks for your message! I'm a simple chatbot. How can I assist you?";
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.reply;
+    } catch (error) {
+      console.error("Error fetching bot response:", error);
+      throw error;
     }
   };
 
@@ -30,7 +42,7 @@ function ChatBot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim() === "") return;
 
     const userMessage = input.trim();
@@ -45,19 +57,32 @@ function ChatBot() {
 
     setMessages((prev) => [...prev, newUserMessage]);
     setInput("");
-
-    // Simulate bot typing delay
+    setError(null);
     setIsTyping(true);
-    setTimeout(() => {
+
+    try {
+      // Fetch bot response from backend
+      const botReply = await getBotResponse(userMessage);
+
       const botResponse = {
         id: Date.now() + 1,
-        text: getBotResponse(userMessage),
+        text: botReply,
         sender: "bot",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botResponse]);
+    } catch (error) {
+      setError("Failed to get response. Please try again.");
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: "Sorry, I'm having trouble connecting. Please check if the backend is running.",
+        sender: "bot",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -141,18 +166,21 @@ function ChatBot() {
 
       {/* Input Area */}
       <div className="bg-white border-t border-gray-200 px-6 py-4 shrink-0">
+        {error && <div className="mb-2 text-xs text-red-500">{error}</div>}
         <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            onKeyPress={(e) => e.key === "Enter" && !isTyping && handleSend()}
             placeholder="Type your message..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            disabled={isTyping}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button
             onClick={handleSend}
-            className="px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg"
+            disabled={isTyping}
+            className="px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Send
           </button>
